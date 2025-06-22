@@ -61,11 +61,8 @@ async def handle_nick(message: types.Message):
             return
 
         await bot.set_chat_administrator_custom_title(chat_id, target_user.id, args)
-        await message.reply(
-            f"✅ Успіх!
-Користувачу <b>{target_user.full_name}</b> призначено титул: <code>{args}</code>",
-            parse_mode="HTML"
-        )
+        await message.reply(f"✅ Успіх! Користувачу <b>{target_user.full_name}</b> призначено титул: <code>{args}</code>",
+        parse_mode="HTML")
 
     except TelegramAPIError as e:
         e_text = str(e)
@@ -82,8 +79,7 @@ async def handle_nick(message: types.Message):
                 "Перевірте налаштування прав адміністратора для бота."
             )
         else:
-            await message.reply(f"❌ Виникла помилка:
-<code>{e}</code>", parse_mode="HTML")
+            await message.reply(f"❌ Виникла помилка: <code>{e}</code>", parse_mode="HTML")
 
 # Health-check сервер для Render
 async def handle(request):
