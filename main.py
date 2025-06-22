@@ -1,4 +1,5 @@
 from aiogram import Bot, Dispatcher, executor, types
+from aiogram.utils.exceptions import TelegramAPIError
 from config import TOKEN
 from database import init_db
 import asyncio
@@ -8,6 +9,14 @@ bot = Bot(token=TOKEN)
 dp = Dispatcher(bot)
 
 init_db()
+
+async def wait_until_admin(chat_id, user_id, retries=5, delay=1.5):
+    for _ in range(retries):
+        member = await bot.get_chat_member(chat_id, user_id)
+        if member.is_chat_admin():
+            return True
+        await asyncio.sleep(delay)
+    return False
 
 @dp.message_handler(commands=["nick"])
 async def handle_nick(message: types.Message):
@@ -26,6 +35,7 @@ async def handle_nick(message: types.Message):
     chat_id = message.chat.id
 
     try:
+        # Promote user to admin
         await bot.promote_chat_member(
             chat_id=chat_id,
             user_id=target_user.id,
@@ -38,18 +48,25 @@ async def handle_nick(message: types.Message):
             can_promote_members=False
         )
 
-        await asyncio.sleep(1.5)
+        # Очікуємо, поки Telegram "усвідомить", що юзер став адміном
+        success = await wait_until_admin(chat_id, target_user.id)
+        if not success:
+            await message.reply("🛑 Не вдалося призначити титул!
+Telegram не встиг оновити статус користувача.")
+            return
 
+        # Ставимо кастомний титул
         await bot.set_chat_administrator_custom_title(chat_id, target_user.id, args)
         await message.reply(f"✅ Успіх!
 Користувачу <b>{target_user.full_name}</b> призначено титул: <code>{args}</code>", parse_mode="HTML")
 
-    except Exception as e:
-        if "USER_NOT_ADMIN" in str(e) or "not an administrator" in str(e):
+    except TelegramAPIError as e:
+        e_text = str(e)
+        if "USER_NOT_ADMIN" in e_text or "not an administrator" in e_text:
             await message.reply("🛑 Неможливо призначити титул!
 Telegram дозволяє це лише адміністраторам.
 Перевірте, чи користувач має статус адміністратора.")
-        elif "CHAT_ADMIN_REQUIRED" in str(e) or "rights" in str(e):
+        elif "CHAT_ADMIN_REQUIRED" in e_text or "rights" in e_text:
             await message.reply("🔒 Обмеження!
 Бот не має достатніх прав для зміни титулу користувача.
 Перевірте налаштування прав адміністратора для бота.")
@@ -69,4 +86,4 @@ def start_health_server():
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
     loop.create_task(asyncio.to_thread(start_health_server))
-    executor.start_polling(dp)
+    executor.start_polling(dp, skip_updates=True)
