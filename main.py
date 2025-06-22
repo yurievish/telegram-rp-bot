@@ -9,23 +9,23 @@ dp = Dispatcher(bot)
 
 init_db()
 
-# === /nick — автоматично піднімає в адміни і ставить титул ===
 @dp.message_handler(commands=["nick"])
 async def handle_nick(message: types.Message):
     if not message.reply_to_message:
-        await message.reply("Кому ти, блядь, хочеш титул видати? Відповідай на повідомлення юзера.")
+        await message.reply("⚠️ Ви не відповіли на повідомлення!
+Щоб призначити титул, скористайтесь командою у відповіді на повідомлення користувача.")
         return
 
     args = message.get_args().strip()
     if not args or "_" not in args:
-        await message.reply("Це не нік, а хуйня з під коня. Формат має бути: /nick Імя_Прізвище")
+        await message.reply("❗ Некоректний формат!
+Будь ласка, використовуйте формат: <code>/nick Ім'я_Прізвище</code>", parse_mode="HTML")
         return
 
     target_user = message.reply_to_message.from_user
     chat_id = message.chat.id
 
     try:
-        # Піднімаємо в адміни
         await bot.promote_chat_member(
             chat_id=chat_id,
             user_id=target_user.id,
@@ -38,14 +38,26 @@ async def handle_nick(message: types.Message):
             can_promote_members=False
         )
 
-        # Ставимо кастомний титул
+        await asyncio.sleep(1.5)
+
         await bot.set_chat_administrator_custom_title(chat_id, target_user.id, args)
-        await message.reply(f"🚨 Тепер {target_user.full_name} — <code>{args}</code>!", parse_mode="HTML")
+        await message.reply(f"✅ Успіх!
+Користувачу <b>{target_user.full_name}</b> призначено титул: <code>{args}</code>", parse_mode="HTML")
 
     except Exception as e:
-        await message.reply(f"Ніхуя не вийшло, бо: {e}")
+        if "USER_NOT_ADMIN" in str(e) or "not an administrator" in str(e):
+            await message.reply("🛑 Неможливо призначити титул!
+Telegram дозволяє це лише адміністраторам.
+Перевірте, чи користувач має статус адміністратора.")
+        elif "CHAT_ADMIN_REQUIRED" in str(e) or "rights" in str(e):
+            await message.reply("🔒 Обмеження!
+Бот не має достатніх прав для зміни титулу користувача.
+Перевірте налаштування прав адміністратора для бота.")
+        else:
+            await message.reply(f"❌ Виникла помилка:
+<code>{e}</code>", parse_mode="HTML")
 
-# === Health-check сервер для Render ===
+# Health-check сервер для Render
 async def handle(request):
     return web.Response(text="I am alive")
 
