@@ -9,11 +9,11 @@ dp = Dispatcher(bot)
 
 init_db()
 
-# === Команда /nick для видачі титулу ===
+# === /nick — автоматично піднімає в адміни і ставить титул ===
 @dp.message_handler(commands=["nick"])
 async def handle_nick(message: types.Message):
     if not message.reply_to_message:
-        await message.reply("Кому ти, блядь, хочеш титул видати? Відповідай на повідомлення адміна.")
+        await message.reply("Кому ти, блядь, хочеш титул видати? Відповідай на повідомлення юзера.")
         return
 
     args = message.get_args().strip()
@@ -25,7 +25,7 @@ async def handle_nick(message: types.Message):
     chat_id = message.chat.id
 
     try:
-        # Піднімаємо юзера до адміна (навіть якщо він вже адмін — так стабільніше)
+        # Піднімаємо в адміни
         await bot.promote_chat_member(
             chat_id=chat_id,
             user_id=target_user.id,
@@ -38,14 +38,14 @@ async def handle_nick(message: types.Message):
             can_promote_members=False
         )
 
-        # Ставимо титул
+        # Ставимо кастомний титул
         await bot.set_chat_administrator_custom_title(chat_id, target_user.id, args)
-        await message.reply(f"Тепер цей єблан має титул: <code>{args}</code>", parse_mode="HTML")
+        await message.reply(f"🚨 Тепер {target_user.full_name} — <code>{args}</code>!", parse_mode="HTML")
 
     except Exception as e:
-        await message.reply(f"Нічого не вийшло, бо: {e}")
+        await message.reply(f"Ніхуя не вийшло, бо: {e}")
 
-# === Фейковий health-check сервер для Render ===
+# === Health-check сервер для Render ===
 async def handle(request):
     return web.Response(text="I am alive")
 
