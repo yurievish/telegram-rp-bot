@@ -1,6 +1,6 @@
 from aiogram import Bot, Dispatcher, executor, types
 from config import TOKEN
-from database import init_db, set_nickname, get_nickname
+from database import init_db
 import asyncio
 from aiohttp import web
 
@@ -9,7 +9,7 @@ dp = Dispatcher(bot)
 
 init_db()
 
-# === РП Нік через /nick ===
+# === Команда /nick для видачі титулу ===
 @dp.message_handler(commands=["nick"])
 async def handle_nick(message: types.Message):
     if not message.reply_to_message:
@@ -25,12 +25,27 @@ async def handle_nick(message: types.Message):
     chat_id = message.chat.id
 
     try:
+        # Піднімаємо юзера до адміна (навіть якщо він вже адмін — так стабільніше)
+        await bot.promote_chat_member(
+            chat_id=chat_id,
+            user_id=target_user.id,
+            can_manage_chat=False,
+            can_change_info=False,
+            can_delete_messages=False,
+            can_invite_users=False,
+            can_restrict_members=False,
+            can_pin_messages=False,
+            can_promote_members=False
+        )
+
+        # Ставимо титул
         await bot.set_chat_administrator_custom_title(chat_id, target_user.id, args)
         await message.reply(f"Тепер цей єблан має титул: <code>{args}</code>", parse_mode="HTML")
+
     except Exception as e:
         await message.reply(f"Нічого не вийшло, бо: {e}")
 
-# === Фейковий вебсервер для Render ===
+# === Фейковий health-check сервер для Render ===
 async def handle(request):
     return web.Response(text="I am alive")
 
