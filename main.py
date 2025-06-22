@@ -21,21 +21,27 @@ async def wait_until_admin(chat_id, user_id, retries=5, delay=1.5):
 @dp.message_handler(commands=["nick"])
 async def handle_nick(message: types.Message):
     if not message.reply_to_message:
-        await message.reply("⚠️ Ви не відповіли на повідомлення!
-Щоб призначити титул, скористайтесь командою у відповіді на повідомлення користувача.")
+        await message.reply(
+            "⚠️ Ви не відповіли на повідомлення!
+"
+            "Щоб призначити титул, скористайтесь командою у відповіді на повідомлення користувача."
+        )
         return
 
     args = message.get_args().strip()
     if not args or "_" not in args:
-        await message.reply("❗ Некоректний формат!
-Будь ласка, використовуйте формат: <code>/nick Ім'я_Прізвище</code>", parse_mode="HTML")
+        await message.reply(
+            "❗ Некоректний формат!
+"
+            "Будь ласка, використовуйте формат: <code>/nick Ім'я_Прізвище</code>",
+            parse_mode="HTML"
+        )
         return
 
     target_user = message.reply_to_message.from_user
     chat_id = message.chat.id
 
     try:
-        # Promote user to admin
         await bot.promote_chat_member(
             chat_id=chat_id,
             user_id=target_user.id,
@@ -48,28 +54,40 @@ async def handle_nick(message: types.Message):
             can_promote_members=False
         )
 
-        # Очікуємо, поки Telegram "усвідомить", що юзер став адміном
         success = await wait_until_admin(chat_id, target_user.id)
         if not success:
-            await message.reply("🛑 Не вдалося призначити титул!
-Telegram не встиг оновити статус користувача.")
+            await message.reply(
+                "🛑 Не вдалося призначити титул!
+"
+                "Telegram не встиг оновити статус користувача."
+            )
             return
 
-        # Ставимо кастомний титул
         await bot.set_chat_administrator_custom_title(chat_id, target_user.id, args)
-        await message.reply(f"✅ Успіх!
-Користувачу <b>{target_user.full_name}</b> призначено титул: <code>{args}</code>", parse_mode="HTML")
+        await message.reply(
+            f"✅ Успіх!
+Користувачу <b>{target_user.full_name}</b> призначено титул: <code>{args}</code>",
+            parse_mode="HTML"
+        )
 
     except TelegramAPIError as e:
         e_text = str(e)
         if "USER_NOT_ADMIN" in e_text or "not an administrator" in e_text:
-            await message.reply("🛑 Неможливо призначити титул!
-Telegram дозволяє це лише адміністраторам.
-Перевірте, чи користувач має статус адміністратора.")
+            await message.reply(
+                "🛑 Неможливо призначити титул!
+"
+                "Telegram дозволяє це лише адміністраторам.
+"
+                "Перевірте, чи користувач має статус адміністратора."
+            )
         elif "CHAT_ADMIN_REQUIRED" in e_text or "rights" in e_text:
-            await message.reply("🔒 Обмеження!
-Бот не має достатніх прав для зміни титулу користувача.
-Перевірте налаштування прав адміністратора для бота.")
+            await message.reply(
+                "🔒 Обмеження!
+"
+                "Бот не має достатніх прав для зміни титулу користувача.
+"
+                "Перевірте налаштування прав адміністратора для бота."
+            )
         else:
             await message.reply(f"❌ Виникла помилка:
 <code>{e}</code>", parse_mode="HTML")
